@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>AEMCP</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>AEMCP</h2>
+            <div class="status" id="status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </div>
+        
+        <div class="log-container">
+            <h3>Activity Log</h3>
+            <div class="log" id="log"></div>
+        </div>
+        
+        <!-- Dynamic panel container -->
+        <div id="dynamicPanel"></div>
+    </div>
+    
+    <script src="js/CSInterface.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

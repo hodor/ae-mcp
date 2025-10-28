@@ -1,0 +1,22 @@
+{
+  "name": "aemcp",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "cd server && npm run build",
+    "start": "cd server && npm start",
+    "install-extension": "node install.js",
+    "dev": "concurrently \"cd server && npm run dev\" \"echo CEP extension installed\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "ws": "^8.14.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.8",
+    "typescript": "^5.2.2",
+    "concurrently": "^8.0.0"
+  }
+}
