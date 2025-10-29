@@ -42,8 +42,25 @@ console.log('AEMCP Installation & Build');
 console.log('====================================');
 console.log();
 
-// Step 1: Build the server
-console.log('Step 1: Building MCP server...');
+// Step 1: Ensure server dependencies are installed
+console.log('Step 1: Checking server dependencies...');
+const serverPath = path.join(__dirname, 'server');
+if (!fs.existsSync(path.join(serverPath, 'node_modules'))) {
+  console.log('Installing server dependencies...');
+  try {
+    execSync('npm install', { stdio: 'inherit', cwd: serverPath });
+    console.log('✓ Server dependencies installed');
+  } catch (err) {
+    console.error('Failed to install server dependencies');
+    process.exit(1);
+  }
+} else {
+  console.log('✓ Server dependencies already installed');
+}
+console.log();
+
+// Step 2: Build the server
+console.log('Step 2: Building MCP server...');
 try {
   execSync('npm run build', { stdio: 'inherit', cwd: __dirname });
   console.log('✓ Server built successfully');
@@ -53,8 +70,8 @@ try {
   process.exit(1);
 }
 
-// Step 2: Install CEP extension
-console.log('Step 2: Installing CEP extension...');
+// Step 3: Install CEP extension
+console.log('Step 3: Installing CEP extension...');
 console.log(`Source: ${sourcePath}`);
 console.log(`Target: ${cepPath}`);
 
