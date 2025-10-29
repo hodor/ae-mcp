@@ -16,7 +16,7 @@ export class AEWebSocketServer {
     this.wss = new WebSocketServer({ port });
     
     this.wss.on('connection', (ws) => {
-      console.log('CEP panel connected');
+      console.error('CEP panel connected');
       this.cepClient = ws;
 
       ws.on('message', (data) => {
@@ -24,7 +24,7 @@ export class AEWebSocketServer {
       });
 
       ws.on('close', () => {
-        console.log('CEP panel disconnected');
+        console.error('CEP panel disconnected');
         this.cepClient = null;
       });
 
@@ -33,7 +33,7 @@ export class AEWebSocketServer {
       });
     });
 
-    console.log(`WebSocket server listening on port ${port}`);
+    console.error(`WebSocket server listening on port ${port}`);
   }
 
   private handleMessage(data: string) {
@@ -46,7 +46,14 @@ export class AEWebSocketServer {
         this.pendingCommands.delete(message.id);
         
         if (message.success) {
-          pending.resolve(message.result);
+          // Parse the result if it's a JSON string
+          try {
+            const result = message.result ? JSON.parse(message.result) : undefined;
+            pending.resolve(result);
+          } catch (e) {
+            // If parsing fails, return as-is
+            pending.resolve(message.result);
+          }
         } else {
           pending.reject(new Error(message.error || 'Unknown error'));
         }

@@ -3,9 +3,19 @@
 Control Adobe After Effects through Claude via Model Context Protocol (MCP).
 
 ## Architecture
-Claude Desktop → MCP Server (Node.js) → WebSocket → CEP Panel (in AE) → ExtendScript
+MCP Client → MCP Server (Node.js) → WebSocket → CEP Panel (in AE) → ExtendScript
 
 ## Installation
+
+### Windows Quick Install
+
+1. Right-click `Install-Windows.bat` 
+2. Select "Run as administrator"
+3. Follow the prompts
+
+That's it! The installer will handle everything automatically.
+
+### Manual Installation
 
 ### 1. Install Dependencies
 ```bash
@@ -24,18 +34,19 @@ This copies the extension to:
 ### 3. Enable CEP Debugging (First time only)
 
 **Windows:**
-1. Open Registry Editor (regedit)
-2. Navigate to `HKEY_CURRENT_USER\Software\Adobe\CSXS.11`
-3. Create a String value named `PlayerDebugMode` with value `1`
+Double-click `Enable-Debug.bat` (or this is done automatically by the installer)
+
+To disable debug mode later, double-click `Disable-Debug.bat`
 
 **Mac:**
 ```bash
 defaults write com.adobe.CSXS.11 PlayerDebugMode 1
 ```
 
-### 4. Configure Claude Desktop
+### 4. Configure MCP Client
 
-Add to your Claude Desktop MCP config:
+#### For Claude Desktop:
+Add to your Claude Desktop config:
 
 **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 **Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -50,6 +61,12 @@ Add to your Claude Desktop MCP config:
 }
 ```
 
+#### For Other MCP Clients:
+Configure your MCP client to run:
+```bash
+node /path/to/aemcp/server/build/index.js
+```
+
 ### 5. Start After Effects
 
 1. Open After Effects
@@ -58,7 +75,7 @@ Add to your Claude Desktop MCP config:
 
 ### 6. Start Using
 
-Start chatting with Claude! The MCP server is running automatically through Claude Desktop.
+Start chatting with your MCP client! The MCP server will communicate with After Effects through the WebSocket connection.
 
 ## Available Tools
 

@@ -16,7 +16,13 @@
         </div>
         
         <div class="log-container">
-            <h3>Activity Log</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h3>Activity Log</h3>
+                <div>
+                    <button id="clearLog" style="padding: 4px 8px; font-size: 11px; background: #404040; color: #e0e0e0; border: none; border-radius: 3px; cursor: pointer; margin-right: 4px;">Clear</button>
+                    <button id="exportLog" style="padding: 4px 8px; font-size: 11px; background: #404040; color: #e0e0e0; border: none; border-radius: 3px; cursor: pointer;">Export</button>
+                </div>
+            </div>
             <div class="log" id="log"></div>
         </div>
         

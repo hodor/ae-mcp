@@ -29,10 +29,15 @@ server.tool(
   async ({ jsx }) => {
     try {
       const result = await executeInAE(jsx);
+      // Convert result to string for display
+      const resultText = result === undefined ? "undefined" : 
+                        result === null ? "null" :
+                        typeof result === "string" ? result :
+                        JSON.stringify(result);
       return {
         content: [{
           type: "text",
-          text: result
+          text: resultText
         }]
       };
     } catch (error) {

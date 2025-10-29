@@ -19,6 +19,9 @@ wsClient.onConnectionChange = (connected) => {
 
 // Handle actions from MCP server
 wsClient.onAction = (message) => {
+    log(`Received action: ${message.action} (ID: ${message.id || 'none'})`, 'info');
+    log(`Message data: ${JSON.stringify(message)}`, 'debug');
+    
     switch (message.action) {
         case 'eval':
             executeScript(message.id, message.jsx);
@@ -29,12 +32,15 @@ wsClient.onAction = (message) => {
         case 'closePanel':
             closeCustomPanel();
             break;
+        default:
+            log(`Unknown action: ${message.action}`, 'warning');
     }
 };
 
 // Execute ExtendScript
 function executeScript(id, jsx) {
-    log(`Executing script...`);
+    log(`Executing script (ID: ${id})...`);
+    log(`Script content: ${jsx}`, 'debug');
     
     // Always wrap the script to return JSON for consistent handling
     const wrappedJsx = `
@@ -48,19 +54,38 @@ function executeScript(id, jsx) {
                 return JSON.stringify({ success: true, result: result });
             } catch (e) {
                 app.endUndoGroup();
-                return JSON.stringify({ success: false, error: e.toString(), line: e.line });
+                var errorDetails = {
+                    message: e.toString(),
+                    line: e.line,
+                    fileName: e.fileName,
+                    stack: e.stack
+                };
+                return JSON.stringify({ success: false, error: e.toString(), details: errorDetails });
             }
         })()
     `;
     
     csInterface.evalScript(wrappedJsx, (result) => {
+        log(`Raw result from AE: "${result}"`, 'debug');
+        
         // Check for CSInterface error first
         if (result === EvalScript_ErrMessage) {
-            log(`Script execution failed at CEP level`, 'error');
+            log(`Script execution failed at CEP level: ${EvalScript_ErrMessage}`, 'error');
             wsClient.send({
                 id: id,
-                error: "Script execution failed: " + result,
+                error: "Script execution failed at CEP level",
                 success: false
+            });
+            return;
+        }
+        
+        // Handle empty result
+        if (!result || result === '') {
+            log(`Script returned empty result (this may be normal for void functions)`, 'warning');
+            wsClient.send({
+                id: id,
+                result: JSON.stringify(undefined),
+                success: true
             });
             return;
         }
@@ -69,7 +94,8 @@ function executeScript(id, jsx) {
         try {
             const parsed = JSON.parse(result);
             if (parsed.success) {
-                log(`Script completed`, 'success');
+                log(`Script completed successfully`, 'success');
+                log(`Result value: ${JSON.stringify(parsed.result)}`, 'debug');
                 wsClient.send({
                     id: id,
                     result: JSON.stringify(parsed.result),
@@ -77,6 +103,9 @@ function executeScript(id, jsx) {
                 });
             } else {
                 log(`Script error: ${parsed.error}`, 'error');
+                if (parsed.details) {
+                    log(`Error details: ${JSON.stringify(parsed.details)}`, 'error');
+                }
                 wsClient.send({
                     id: id,
                     error: parsed.error,
@@ -84,11 +113,12 @@ function executeScript(id, jsx) {
                 });
             }
         } catch (e) {
-            // JSON parsing failed - shouldn't happen with our wrapper unless AE crashed
-            log(`Unexpected response: ${result}`, 'error');
+            // JSON parsing failed - log everything for debugging
+            log(`JSON parsing failed: ${e.message}`, 'error');
+            log(`Full response (${result.length} chars): "${result}"`, 'error');
             wsClient.send({
                 id: id,
-                error: `Unexpected response from After Effects: ${result}`,
+                error: `JSON parsing failed: ${e.message}`,
                 success: false
             });
         }
@@ -136,6 +166,14 @@ function closeCustomPanel() {
     log('Custom panel closed');
 }
 
+// Store original console methods FIRST before any logging
+const originalConsole = {
+    log: console.log,
+    error: console.error,
+    warn: console.warn,
+    info: console.info
+};
+
 // Logging
 function log(message, type = 'info') {
     const logDiv = document.getElementById('log');
@@ -143,14 +181,94 @@ function log(message, type = 'info') {
     entry.className = `log-entry ${type}`;
     
     const timestamp = new Date().toLocaleTimeString();
-    entry.innerHTML = `<span class="timestamp">[${timestamp}]</span>${message}`;
+    // Escape HTML to show raw content
+    const escapedMessage = String(message)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    
+    entry.innerHTML = `<span class="timestamp">[${timestamp}]</span><span class="message">${escapedMessage}</span>`;
     
     logDiv.insertBefore(entry, logDiv.firstChild);
     
-    // Keep last 100 entries
-    while (logDiv.children.length > 100) {
+    // Keep last 200 entries for debugging
+    while (logDiv.children.length > 200) {
         logDiv.removeChild(logDiv.lastChild);
     }
+    
+    // Use ORIGINAL console to avoid recursion
+    originalConsole.log(`[${type.toUpperCase()}] ${message}`);
 }
 
-log('AEMCP panel loaded');
+// Capture all console output
+console.log = function(...args) {
+    log('Console: ' + args.join(' '), 'debug');
+    originalConsole.log.apply(console, args);
+};
+
+console.error = function(...args) {
+    log('Console Error: ' + args.join(' '), 'error');
+    originalConsole.error.apply(console, args);
+};
+
+console.warn = function(...args) {
+    log('Console Warn: ' + args.join(' '), 'warning');
+    originalConsole.warn.apply(console, args);
+};
+
+// Capture uncaught errors
+window.addEventListener('error', (event) => {
+    log(`Uncaught error: ${event.message} at ${event.filename}:${event.lineno}:${event.colno}`, 'error');
+    log(`Error stack: ${event.error?.stack || 'No stack trace'}`, 'error');
+});
+
+log('AEMCP panel loaded', 'success');
+log(`CSInterface version: ${csInterface.getSystemPath('extension')}`, 'debug');
+log(`Host environment: ${JSON.stringify(csInterface.getHostEnvironment())}`, 'debug');
+
+// Clear log button
+document.getElementById('clearLog').addEventListener('click', () => {
+    const logDiv = document.getElementById('log');
+    logDiv.innerHTML = '';
+    log('Log cleared', 'info');
+});
+
+// Export log button
+document.getElementById('exportLog').addEventListener('click', () => {
+    const logDiv = document.getElementById('log');
+    const logs = [];
+    
+    // Get all log entries
+    for (let i = logDiv.children.length - 1; i >= 0; i--) {
+        const entry = logDiv.children[i];
+        const timestamp = entry.querySelector('.timestamp')?.textContent || '';
+        const message = entry.querySelector('.message')?.textContent || entry.textContent;
+        logs.push(`${timestamp} ${message}`);
+    }
+    
+    // Create export content
+    const exportContent = logs.join('\n');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `aemcp-log-${timestamp}.txt`;
+    
+    // Write to file using ExtendScript
+    const jsx = `
+        (function() {
+            try {
+                var file = new File("~/Desktop/" + ${JSON.stringify(filename)});
+                file.open("w");
+                file.write(${JSON.stringify(exportContent)});
+                file.close();
+                return "Log exported to Desktop: " + file.fsName;
+            } catch(e) {
+                return "Export failed: " + e.toString();
+            }
+        })()
+    `;
+    
+    csInterface.evalScript(jsx, (result) => {
+        log(result, result.includes('failed') ? 'error' : 'success');
+    });
+});

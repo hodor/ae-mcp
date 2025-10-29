@@ -62,7 +62,7 @@ h2 {
     border: 1px solid #404040;
     border-radius: 4px;
     padding: 8px;
-    height: 200px;
+    height: 300px;
     overflow-y: auto;
     font-family: 'Courier New', monospace;
     font-size: 11px;
@@ -71,6 +71,9 @@ h2 {
 .log-entry {
     margin-bottom: 4px;
     color: #b0b0b0;
+    line-height: 1.4;
+    word-wrap: break-word;
+    white-space: pre-wrap;
 }
 
 .log-entry .timestamp {
@@ -78,12 +81,53 @@ h2 {
     margin-right: 8px;
 }
 
+.log-entry .message {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
 .log-entry.error {
     color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 2px 4px;
+    border-left: 3px solid #ef4444;
 }
 
 .log-entry.success {
     color: #4ade80;
+}
+
+.log-entry.warning {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+}
+
+.log-entry.debug {
+    color: #60a5fa;
+    opacity: 0.8;
+    font-size: 10px;
+}
+
+.log-entry.info {
+    color: #e0e0e0;
+}
+
+/* Scrollbar styling */
+.log::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.log::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 4px;
+}
+
+.log::-webkit-scrollbar-thumb:hover {
+    background: #505050;
 }
 
 #dynamicPanel {
