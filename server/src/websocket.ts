@@ -46,7 +46,8 @@ export class AEWebSocketServer {
         this.pendingCommands.delete(message.id);
         
         if (message.success) {
-          // Parse the result if it's a JSON string
+          // The result is already JSON stringified from the CEP panel
+          // Parse it to get the actual value
           try {
             const result = message.result ? JSON.parse(message.result) : undefined;
             pending.resolve(result);

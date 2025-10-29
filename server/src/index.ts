@@ -22,15 +22,15 @@ async function executeInAE(jsx: string): Promise<string> {
 // Tool 1: Run Script
 server.tool(
   "run_script",
-  "Execute ExtendScript code in After Effects",
+  "Execute ExtendScript code in After Effects. Note: ExtendScript does NOT have JSON support. To return values, use explicit 'return' statements. To return objects, build them as strings.",
   {
-    jsx: z.string().describe("ExtendScript code to execute")
+    jsx: z.string().describe("ExtendScript code to execute. Use 'return' to get values back.")
   },
   async ({ jsx }) => {
     try {
       const result = await executeInAE(jsx);
       // Convert result to string for display
-      const resultText = result === undefined ? "undefined" : 
+      const resultText = result === undefined ? "Success" : 
                         result === null ? "null" :
                         typeof result === "string" ? result :
                         JSON.stringify(result);
@@ -52,27 +52,22 @@ server.tool(
   }
 );
 
-// Tool 6: Create Panel
+// Tool 6: Create ScriptUI Dialog
 server.tool(
-  "create_panel",
-  "Create a custom UI panel in After Effects",
+  "create_scriptui_dialog",
+  "Create a new floating window/dialog using ExtendScript's ScriptUI. This creates a SEPARATE floating window with native UI controls. Perfect for tools and utilities that need their own window.",
   {
-    html: z.string().describe("HTML content"),
-    css: z.string().optional().describe("CSS styles"),
-    js: z.string().optional().describe("JavaScript for interactions")
+    scriptui_code: z.string().describe("ExtendScript ScriptUI code to create the dialog. Example: var dialog = new Window('dialog', 'My Tool'); dialog.add('button', undefined, 'Click Me'); dialog.show();")
   },
-  async ({ html, css, js }) => {
+  async ({ scriptui_code }) => {
     try {
-      await wsServer.sendCommand('renderCustomPanel', {
-        html: html,
-        css: css || "",
-        js: js || ""
-      });
+      // ScriptUI code runs directly as ExtendScript
+      const result = await executeInAE(scriptui_code);
       
       return {
         content: [{
           type: "text",
-          text: "Custom panel created successfully!"
+          text: result === undefined ? "ScriptUI dialog created" : result
         }]
       };
     } catch (error) {
@@ -87,10 +82,45 @@ server.tool(
   }
 );
 
-// Tool 7: Close Panel
+// Tool 7: Append HTML to Panel
 server.tool(
-  "close_panel",
-  "Close the custom UI panel",
+  "append_html_to_panel",
+  "Append HTML/CSS/JS content to the existing AEMCP panel. Note: This adds content INSIDE the current AEMCP panel window, it does NOT create a new window. Use create_scriptui_dialog for new windows.",
+  {
+    html: z.string().describe("HTML content to append to the panel"),
+    css: z.string().optional().describe("CSS styles"),
+    js: z.string().optional().describe("JavaScript for interactions")
+  },
+  async ({ html, css, js }) => {
+    try {
+      await wsServer.sendCommand('renderCustomPanel', {
+        html: html,
+        css: css || "",
+        js: js || ""
+      });
+      
+      return {
+        content: [{
+          type: "text",
+          text: "HTML content appended to panel"
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: "text",
+          text: `Error: ${error instanceof Error ? error.message : String(error)}`
+        }],
+        isError: true
+      };
+    }
+  }
+);
+
+// Tool 8: Clear Panel HTML
+server.tool(
+  "clear_panel_html",
+  "Clear the HTML content from the AEMCP panel",
   {},
   async () => {
     try {
@@ -98,7 +128,7 @@ server.tool(
       return {
         content: [{
           type: "text",
-          text: "Custom panel closed"
+          text: "Panel HTML cleared"
         }]
       };
     } catch (error) {

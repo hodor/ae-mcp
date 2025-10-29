@@ -27,10 +27,10 @@ wsClient.onAction = (message) => {
             executeScript(message.id, message.jsx);
             break;
         case 'renderCustomPanel':
-            renderCustomPanel(message.html, message.css, message.js);
+            renderCustomPanel(message.id, message.html, message.css, message.js);
             break;
         case 'closePanel':
-            closeCustomPanel();
+            closeCustomPanel(message.id);
             break;
         default:
             log(`Unknown action: ${message.action}`, 'warning');
@@ -42,25 +42,19 @@ function executeScript(id, jsx) {
     log(`Executing script (ID: ${id})...`);
     log(`Script content: ${jsx}`, 'debug');
     
-    // Always wrap the script to return JSON for consistent handling
     const wrappedJsx = `
         (function() {
+            var result;
             try {
                 app.beginUndoGroup("MCP Server Action");
-                var result = (function() {
+                result = (function() {
                     ${jsx}
                 })();
                 app.endUndoGroup();
-                return JSON.stringify({ success: true, result: result });
+                return result;
             } catch (e) {
                 app.endUndoGroup();
-                var errorDetails = {
-                    message: e.toString(),
-                    line: e.line,
-                    fileName: e.fileName,
-                    stack: e.stack
-                };
-                return JSON.stringify({ success: false, error: e.toString(), details: errorDetails });
+                return "ERROR: " + e.toString();
             }
         })()
     `;
@@ -79,9 +73,21 @@ function executeScript(id, jsx) {
             return;
         }
         
-        // Handle empty result
-        if (!result || result === '') {
-            log(`Script returned empty result (this may be normal for void functions)`, 'warning');
+        // Check if it's an error from our wrapper
+        if (result && result.startsWith('ERROR: ')) {
+            const errorMsg = result.substring(7);
+            log(`Script error: ${errorMsg}`, 'error');
+            wsClient.send({
+                id: id,
+                error: errorMsg,
+                success: false
+            });
+            return;
+        }
+        
+        // Handle empty result or "undefined" string (void functions)
+        if (!result || result === '' || result === 'undefined') {
+            log(`Script executed successfully (no return value)`, 'success');
             wsClient.send({
                 id: id,
                 result: JSON.stringify(undefined),
@@ -90,80 +96,113 @@ function executeScript(id, jsx) {
             return;
         }
         
-        // Result should always be JSON from our wrapper
+        // Success - we got a result
+        log(`Script completed successfully`, 'success');
+        log(`Result value: ${result}`, 'debug');
+        
+        // Try to parse as JSON if it looks like JSON, otherwise send raw
+        let resultToSend = result;
         try {
-            const parsed = JSON.parse(result);
-            if (parsed.success) {
-                log(`Script completed successfully`, 'success');
-                log(`Result value: ${JSON.stringify(parsed.result)}`, 'debug');
-                wsClient.send({
-                    id: id,
-                    result: JSON.stringify(parsed.result),
-                    success: true
-                });
+            if (result.startsWith('{') || result.startsWith('[')) {
+                // Might be JSON, try to parse and re-stringify
+                const parsed = JSON.parse(result);
+                resultToSend = JSON.stringify(parsed);
             } else {
-                log(`Script error: ${parsed.error}`, 'error');
-                if (parsed.details) {
-                    log(`Error details: ${JSON.stringify(parsed.details)}`, 'error');
-                }
-                wsClient.send({
-                    id: id,
-                    error: parsed.error,
-                    success: false
-                });
+                // Not JSON, stringify the raw value
+                resultToSend = JSON.stringify(result);
             }
         } catch (e) {
-            // JSON parsing failed - log everything for debugging
-            log(`JSON parsing failed: ${e.message}`, 'error');
-            log(`Full response (${result.length} chars): "${result}"`, 'error');
-            wsClient.send({
-                id: id,
-                error: `JSON parsing failed: ${e.message}`,
-                success: false
-            });
+            // Not valid JSON, just stringify the raw result
+            resultToSend = JSON.stringify(result);
         }
+        
+        wsClient.send({
+            id: id,
+            result: resultToSend,
+            success: true
+        });
     });
 }
 
 // Dynamic panel rendering
-function renderCustomPanel(html, css, js) {
-    const container = document.getElementById('dynamicPanel');
-    
-    // Clear existing
-    container.innerHTML = '';
-    
-    // Add CSS
-    if (css) {
-        const style = document.createElement('style');
-        style.textContent = css;
-        document.head.appendChild(style);
+function renderCustomPanel(id, html, css, js) {
+    try {
+        const container = document.getElementById('dynamicPanel');
+        
+        // Clear existing
+        container.innerHTML = '';
+        
+        // Add CSS
+        if (css) {
+            const style = document.createElement('style');
+            style.textContent = css;
+            document.head.appendChild(style);
+        }
+        
+        // Add HTML
+        container.innerHTML = html;
+        
+        // Add JS with helper
+        if (js) {
+            const script = document.createElement('script');
+            script.textContent = `
+                ${js}
+                
+                // Helper to call After Effects
+                window.callAE = function(jsx, callback) {
+                    csInterface.evalScript(jsx, callback || function(result) {
+                        console.log('AE Result:', result);
+                    });
+                };
+            `;
+            document.body.appendChild(script);
+        }
+        
+        log('Custom panel rendered', 'success');
+        
+        // Send success response back
+        if (id) {
+            wsClient.send({
+                id: id,
+                success: true,
+                result: JSON.stringify("Panel rendered successfully")
+            });
+        }
+    } catch (error) {
+        log(`Panel rendering error: ${error.message}`, 'error');
+        if (id) {
+            wsClient.send({
+                id: id,
+                success: false,
+                error: error.message
+            });
+        }
     }
-    
-    // Add HTML
-    container.innerHTML = html;
-    
-    // Add JS with helper
-    if (js) {
-        const script = document.createElement('script');
-        script.textContent = `
-            ${js}
-            
-            // Helper to call After Effects
-            window.callAE = function(jsx, callback) {
-                csInterface.evalScript(jsx, callback || function(result) {
-                    console.log('AE Result:', result);
-                });
-            };
-        `;
-        document.body.appendChild(script);
-    }
-    
-    log('Custom panel rendered', 'success');
 }
 
-function closeCustomPanel() {
-    document.getElementById('dynamicPanel').innerHTML = '';
-    log('Custom panel closed');
+function closeCustomPanel(id) {
+    try {
+        document.getElementById('dynamicPanel').innerHTML = '';
+        log('Custom panel closed');
+        
+        // Send success response back
+        if (id) {
+            wsClient.send({
+                id: id,
+                success: true,
+                result: JSON.stringify("Panel closed successfully")
+            });
+        }
+    } catch (error) {
+        log(`Panel close error: ${error.message}`, 'error');
+        if (id) {
+            wsClient.send({
+                id: id,
+                success: false,
+                error: error.message
+            });
+        }
+    }
 }
 
 // Store original console methods FIRST before any logging
@@ -191,11 +230,20 @@ function log(message, type = 'info') {
     
     entry.innerHTML = `<span class="timestamp">[${timestamp}]</span><span class="message">${escapedMessage}</span>`;
     
-    logDiv.insertBefore(entry, logDiv.firstChild);
+    // Check if user has scrolled up (not at bottom)
+    const isAtBottom = logDiv.scrollHeight - logDiv.clientHeight <= logDiv.scrollTop + 1;
+    
+    // Append to bottom (newer messages at bottom)
+    logDiv.appendChild(entry);
     
     // Keep last 200 entries for debugging
     while (logDiv.children.length > 200) {
-        logDiv.removeChild(logDiv.lastChild);
+        logDiv.removeChild(logDiv.firstChild);
+    }
+    
+    // Auto-scroll to bottom if user was already at bottom
+    if (isAtBottom) {
+        logDiv.scrollTop = logDiv.scrollHeight;
     }
     
     // Use ORIGINAL console to avoid recursion
