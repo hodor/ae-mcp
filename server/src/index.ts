@@ -52,12 +52,12 @@ server.tool(
   }
 );
 
-// Tool 6: Create ScriptUI Dialog
+// Tool 6: Create ScriptUI Tool
 server.tool(
-  "create_scriptui_dialog",
-  "Create a new floating window/dialog using ExtendScript's ScriptUI. This creates a SEPARATE floating window with native UI controls. Perfect for tools and utilities that need their own window.",
+  "create_scriptui_tool",
+  "Create a custom tool window for After Effects using ScriptUI. This creates a SEPARATE floating tool window with buttons, sliders, text inputs, and other controls. Perfect for building custom tools and utilities for the user. Use 'palette' for persistent tool windows, 'dialog' for quick modal inputs.",
   {
-    scriptui_code: z.string().describe("ExtendScript ScriptUI code to create the dialog. Example: var dialog = new Window('dialog', 'My Tool'); dialog.add('button', undefined, 'Click Me'); dialog.show();")
+    scriptui_code: z.string().describe("ExtendScript ScriptUI code to create the tool. Use Window('palette') for non-blocking tools. Example: var tool = new Window('palette', 'My Custom Tool'); tool.add('button', undefined, 'Process'); tool.show();")
   },
   async ({ scriptui_code }) => {
     try {
@@ -67,7 +67,7 @@ server.tool(
       return {
         content: [{
           type: "text",
-          text: result === undefined ? "ScriptUI dialog created" : result
+          text: result === undefined ? "ScriptUI tool created successfully" : result
         }]
       };
     } catch (error) {
@@ -85,7 +85,7 @@ server.tool(
 // Tool 7: Append HTML to Panel
 server.tool(
   "append_html_to_panel",
-  "Append HTML/CSS/JS content to the existing AEMCP panel. Note: This adds content INSIDE the current AEMCP panel window, it does NOT create a new window. Use create_scriptui_dialog for new windows.",
+  "Append HTML/CSS/JS content to the existing AEMCP panel. Note: This adds content INSIDE the current AEMCP panel window, it does NOT create a new window. Use create_scriptui_tool for new windows.",
   {
     html: z.string().describe("HTML content to append to the panel"),
     css: z.string().optional().describe("CSS styles"),
