@@ -163,8 +163,7 @@ ae-mcp/
 │   └── build/       # Compiled JavaScript
 ├── extension/       # CEP panel
 │   └── client/      # Panel UI (HTML/JS/CSS)
-├── commands/        # (Future) Modular command structure
-└── tasks.md        # Development roadmap
+└── commands/        # (Future) Modular command structure
 ```
 
 ### Build Commands
@@ -207,8 +206,6 @@ Open Chrome and navigate to `http://localhost:8092`
 
 ## Roadmap
 
-See [tasks.md](tasks.md) for detailed development plans:
-
 - **Priority 0**: CEP Panel UI overhaul with tabs
 - **Priority 1**: Visual feedback system (render_frame, preview_layer)
 - **Priority 2**: Tool persistence and editing
@@ -238,5 +235,4 @@ MIT
 
 For issues, feature requests, or questions:
 - Open an issue on GitHub
-- Check the [tasks.md](tasks.md) file for known TODOs
 - Review [design-v2.md](design-v2.md) for architecture details
