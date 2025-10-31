@@ -101,7 +101,7 @@ Add to your config file:
   "mcpServers": {
     "after-effects": {
       "command": "node",
-      "args": ["F:/AI/ae-mcp/server/build/index.js"]
+      "args": ["/path/to/ae-mcp/server/build/index.js"]
     }
   }
 }
