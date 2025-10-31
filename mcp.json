@@ -1,0 +1,53 @@
+{
+  "name": "ae-mcp",
+  "version": "1.0.0",
+  "description": "Control Adobe After Effects through AI assistants via Model Context Protocol",
+  "author": "Your Name",
+  "license": "MIT",
+  "homepage": "https://github.com/yourusername/ae-mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ae-mcp.git"
+  },
+  "mcp": {
+    "type": "server",
+    "runtime": "node",
+    "entry": "server/build/index.js",
+    "requirements": {
+      "node": ">=14.0.0"
+    },
+    "platforms": ["windows", "mac"],
+    "tools": [
+      {
+        "name": "run_script",
+        "description": "Execute ExtendScript code in After Effects"
+      },
+      {
+        "name": "create_scriptui_tool",
+        "description": "Create floating ScriptUI tool windows"
+      },
+      {
+        "name": "append_html_to_panel",
+        "description": "Add HTML content to the AEMCP panel"
+      },
+      {
+        "name": "clear_panel_html",
+        "description": "Clear HTML content from the panel"
+      }
+    ],
+    "tags": [
+      "after-effects",
+      "adobe",
+      "creative-cloud",
+      "automation",
+      "extendscript"
+    ]
+  },
+  "installation": {
+    "instructions": "See README.md for detailed installation steps",
+    "requirements": [
+      "After Effects 2020 or later",
+      "Administrator privileges for installation"
+    ]
+  }
+}
