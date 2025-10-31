@@ -22,9 +22,9 @@ async function executeInAE(jsx: string): Promise<string> {
 // Tool 1: Run Script
 server.tool(
   "run_script",
-  "Execute ExtendScript code in After Effects. Note: ExtendScript does NOT have JSON support. To return values, use explicit 'return' statements. To return objects, build them as strings.",
+  "Execute ExtendScript code in After Effects. Your code is automatically wrapped in beginUndoGroup/endUndoGroup, so don't add those. Note: ExtendScript does NOT have JSON support. To return values, use explicit 'return' statements. To return objects, build them as strings.",
   {
-    jsx: z.string().describe("ExtendScript code to execute. Use 'return' to get values back.")
+    jsx: z.string().describe("ExtendScript code to execute. Already wrapped in undo group. Use 'return' to get values back.")
   },
   async ({ jsx }) => {
     try {
